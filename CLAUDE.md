@@ -150,7 +150,10 @@ Merge `local` and `remote` boards item by item:
 - Union of all columns and all cards by `id`.
 - When an id exists on both sides, keep the one with the newer `updatedAt` (tombstones included).
 - Exception: when both sides have the same card, merge its `comments` by `id` union (a comment deleted on either side stays deleted), so comments added on two devices both survive. Other card fields follow the newer `updatedAt`.
+- Exact `updatedAt` ties are broken deterministically (tombstone first, then content order), so both devices converge on the same result.
+- A live card whose column was deleted on the other side is moved to the first live column.
 - Pure function with no side effects, so it is easy to test.
+- Pulls (app visible again) also merge rather than replace; if the merge contains anything GitHub lacks, it is pushed.
 
 ## Security rules (non-negotiable)
 

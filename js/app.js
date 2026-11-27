@@ -5,17 +5,20 @@
 //   edit -> board in memory -> (0.5 s) encrypted copy in IndexedDB, marked "dirty"
 //                           -> (1.5 s) encrypted copy PUT to GitHub, then "dirty" cleared
 //   unlock -> render the cached copy immediately -> fetch GitHub in the background
+//   save conflict (another device saved first) -> fetch, decrypt, merge, re-encrypt, retry (x3)
 
 import * as Board from './board.js';
 import * as C from './crypto.js';
 import * as Storage from './storage.js';
 import * as Sync from './sync.js';
+import { mergeBoards } from './merge.js';
 import { initUI, showBoard, replaceBoard, clearBoard } from './ui.js';
 
 const MIN_PASSPHRASE_LENGTH = 12;
 const LOCAL_SAVE_DELAY_MS = 500;
 const REMOTE_SAVE_DELAY_MS = 1500;
 const RETRY_DELAY_MS = 60_000;
+const MAX_CONFLICT_RETRIES = 3;
 const AUTO_LOCK_MS = autoLockMs();
 const TOKEN_PATTERN = /^(github_pat_|ghp_)[A-Za-z0-9_]+$/;
 
@@ -26,7 +29,7 @@ const TOKEN_PATTERN = /^(github_pat_|ghp_)[A-Za-z0-9_]+$/;
 //   dirty,                      true = changes not yet saved to GitHub
 //   changeCount,                bumps on every edit (detects edits made during a save)
 //   pushing, pushAgain, pulling,
-//   blocked,                    'auth' | 'conflict' | 'repo' | 'invalid' | null: stop auto-sync until fixed
+//   blocked,                    'auth' | 'repo' | 'invalid' | null: stop auto-sync until fixed
 //   pastShas,                   versions we've already moved past (ignore stale GitHub reads)
 // }
 let session = null;
@@ -343,15 +346,31 @@ function pushRemote(s = session) {
   if (s === session) setStatus('saving');
 
   activePush = (async () => {
-    const startCount = s.changeCount;
     let failed = false;
     try {
-      const file = await C.encryptJSON(s.key, s.salt, s.board);
-      const newSha = await Sync.saveRemote(s.config, s.token, file, s.sha);
-      if (s.sha) s.pastShas.add(s.sha);
-      s.sha = newSha;
-      if (s.changeCount === startCount) s.dirty = false; // nothing new since we started
-      await writeCache(s);
+      // First attempt, plus up to MAX_CONFLICT_RETRIES merge-and-retry rounds.
+      for (let attempt = 0; ; attempt++) {
+        const startCount = s.changeCount;
+        Board.purgeTombstones(s.board);
+        const file = await C.encryptJSON(s.key, s.salt, s.board); // new IV every attempt
+        try {
+          const newSha = await Sync.saveRemote(s.config, s.token, file, s.sha);
+          moveToSha(s, newSha);
+          if (s.changeCount === startCount) s.dirty = false; // nothing new since we started
+          await writeCache(s);
+          break;
+        } catch (err) {
+          const isConflict = err instanceof Sync.SyncError && err.kind === 'conflict';
+          if (!isConflict) throw err;
+          if (attempt >= MAX_CONFLICT_RETRIES) {
+            throw new Sync.SyncError('server', 'Couldn\'t save: the board kept changing on another device. Will retry.');
+          }
+          // Another device saved first: get its version, merge ours in, try again.
+          // Short, growing pause: right after a save, GitHub can briefly serve the old version.
+          await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+          await mergeRemoteInto(s);
+        }
+      }
     } catch (err) {
       failed = true;
       handleSyncError(s, err);
@@ -369,12 +388,58 @@ function pushRemote(s = session) {
   return activePush;
 }
 
-// Fetch GitHub's copy; if another device saved a newer version, show it.
+// Record that we've moved to a new GitHub version (and remember the old one as stale).
+function moveToSha(s, sha) {
+  if (s.sha && s.sha !== sha) s.pastShas.add(s.sha);
+  s.pastShas.delete(sha);
+  s.sha = sha;
+}
+
+// Decrypt a file fetched from GitHub with this session's key.
+async function decryptRemote(s, remote) {
+  if (remote.file.salt !== C.bytesToBase64(s.salt)) {
+    throw new Sync.SyncError('invalid', 'The board on GitHub was set up with a different passphrase. Reset this device and set it up again.');
+  }
+  try {
+    return Board.normalizeBoard(await C.decryptJSON(s.key, remote.file));
+  } catch (err) {
+    if (err instanceof C.WrongPassphraseError) {
+      throw new Sync.SyncError('invalid', 'The board on GitHub can\'t be opened with this passphrase.');
+    }
+    throw err;
+  }
+}
+
+// Merge GitHub's version into ours and adopt its sha, so the next save builds on it.
+// The merge runs synchronously right after decrypting, against the board as it is
+// at that moment, so edits made while we were fetching are included, never lost.
+function adoptMerged(s, remoteBoard, sha) {
+  const merged = mergeBoards(s.board, remoteBoard);
+  s.board = merged;
+  moveToSha(s, sha);
+  if (s === session) replaceBoard(merged);
+  // Did our side contribute anything GitHub doesn't have? (merge(x, x) = x's canonical form)
+  return JSON.stringify(merged) !== JSON.stringify(mergeBoards(remoteBoard, remoteBoard));
+}
+
+// Used after a save conflict: fetch the latest, decrypt, merge ours in.
+async function mergeRemoteInto(s) {
+  const remote = await Sync.loadRemote(s.config, s.token);
+  if (!remote) {
+    s.sha = null; // file was deleted on GitHub: the retry recreates it
+    return;
+  }
+  const remoteBoard = await decryptRemote(s, remote);
+  adoptMerged(s, remoteBoard, remote.sha);
+  writeCache(s); // still dirty: the merged board is saved on the next attempt
+}
+
+// Fetch GitHub's copy and merge in changes from other devices.
 async function pullRemote() {
   const s = session;
   if (!s || s.pulling || s.pushing || s.blocked) return;
   if (s.dirty) {
-    pushRemote(s); // our changes go first; if GitHub moved on, that save reports the conflict
+    pushRemote(s); // our changes go first; a conflict there triggers the merge
     return;
   }
   s.pulling = true;
@@ -393,23 +458,20 @@ async function pullRemote() {
       if (!s.dirty) setStatus('saved');
       return;
     }
-    if (remote.file.salt !== C.bytesToBase64(s.salt)) {
-      throw new Sync.SyncError('invalid', 'The board on GitHub was set up with a different passphrase. Reset this device and set it up again.');
-    }
-    const board = Board.normalizeBoard(await C.decryptJSON(s.key, remote.file));
-    if (s !== session || s.dirty) return; // edited while we were fetching; keep the edits
-    if (s.sha) s.pastShas.add(s.sha);
-    s.board = board;
-    s.sha = remote.sha;
-    replaceBoard(board);
-    writeCache(s);
-    setStatus('saved');
-  } catch (err) {
-    if (err instanceof C.WrongPassphraseError) {
-      handleSyncError(s, new Sync.SyncError('invalid', 'The board on GitHub can\'t be opened with this passphrase.'));
+    const remoteBoard = await decryptRemote(s, remote);
+    if (s !== session) return;
+    const weHaveMore = adoptMerged(s, remoteBoard, remote.sha);
+    if (weHaveMore || s.dirty) {
+      // Edits made during the fetch (or anything GitHub lacks) still need saving.
+      s.dirty = true;
+      writeCache(s);
+      pushRemote(s);
     } else {
-      handleSyncError(s, err);
+      writeCache(s);
+      setStatus('saved');
     }
+  } catch (err) {
+    handleSyncError(s, err);
   } finally {
     s.pulling = false;
   }
@@ -417,7 +479,7 @@ async function pullRemote() {
 
 function handleSyncError(s, err) {
   const kind = err instanceof Sync.SyncError ? err.kind : 'server';
-  if (['auth', 'conflict', 'repo', 'invalid'].includes(kind)) s.blocked = kind;
+  if (['auth', 'repo', 'invalid'].includes(kind)) s.blocked = kind;
   if (s !== session) return;
 
   if (kind === 'network') {
@@ -427,14 +489,15 @@ function handleSyncError(s, err) {
     setStatus('error', Sync.AUTH_MESSAGE, 'settings');
   } else if (kind === 'repo') {
     setStatus('error', `${err.message} Check it in settings.`, 'settings');
-  } else if (kind === 'conflict') {
-    // Milestone 5 replaces this with an automatic merge.
-    setStatus('error', 'The board changed on another device. Your changes are kept on this device; '
-      + 'automatic merging arrives in the next update.');
   } else if (kind === 'invalid') {
     setStatus('error', err.message);
   } else {
-    setStatus('error', err instanceof Sync.SyncError ? err.message : 'Sync failed. Will retry.');
+    if (!(err instanceof Sync.SyncError)) {
+      // An unexpected bug, not a GitHub/network problem. Log its type and message for
+      // debugging; these describe code, never board contents, tokens or keys.
+      console.error(`Sync failed unexpectedly: ${err?.name}: ${err?.message}`);
+    }
+    setStatus('error', err instanceof Sync.SyncError ? err.message : 'Sync failed. Will retry in a minute.');
     scheduleRetry();
   }
 }

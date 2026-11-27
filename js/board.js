@@ -367,3 +367,16 @@ export function deleteComment(board, cardId, commentId) {
   comment.deleted = true;
   touch(card);
 }
+
+// ---- Tombstone purge ----
+
+const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Remove deleted columns and cards whose deletion is over 30 days old, so the file
+// doesn't grow forever. (A device offline for longer than that could bring one back.)
+export function purgeTombstones(board, nowMs = Date.now()) {
+  const expired = (item) => item.deleted && nowMs - (Date.parse(item.updatedAt) || nowMs) > TOMBSTONE_TTL_MS;
+  board.columns = board.columns.filter((c) => !expired(c));
+  board.cards = board.cards.filter((c) => !expired(c));
+  return board;
+}
