@@ -216,6 +216,52 @@ select {
   color: var(--text);
 }
 
+/* ---- Sync status ---- */
+
+.sync-status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #091e420f;
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sync-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sync-status[data-state="saved"] { color: var(--success-text); background: var(--success-bg); }
+.sync-status[data-state="saving"] { color: var(--text-subtle); }
+.sync-status[data-state="offline"] { color: var(--warning-text); background: var(--warning-bg); }
+.sync-status[data-state="error"] { color: var(--danger); background: var(--danger-bg); }
+
+.sync-banner {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  font-size: 13px;
+}
+
+.sync-banner[data-state="offline"] { background: var(--warning-bg); color: var(--warning-text); }
+.sync-banner[data-state="error"] { background: var(--danger-bg); color: var(--danger); }
+
+.sync-banner-text {
+  flex: 1 1 240px;
+}
+
 /* ---- Buttons ---- */
 
 .btn {

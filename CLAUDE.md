@@ -141,6 +141,8 @@ X-GitHub-Api-Version: 2022-11-28
 - 401/403: show "Token rejected or expired. Update it in settings." Allow entering a new token (encrypted the same way).
 - Network failure: keep the change locally, show an "Offline, will sync" indicator, retry when `online` fires.
 - Show a small sync status: Saved / Saving… / Offline / Error.
+- The IndexedDB cache record is `{ file, sha, dirty }`; `dirty` means "has changes not yet on GitHub", so unsynced edits survive a lock or a closed tab and are pushed at the next unlock.
+- When the app becomes visible again, fetch remote (if nothing is unsynced) so edits from other devices show up. Ignore a remote sha this session has already moved past (the API can briefly serve an older version).
 
 ## Merge spec (`js/merge.js`)
 

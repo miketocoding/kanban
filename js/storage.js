@@ -3,7 +3,8 @@
 // What is stored on this device, and nothing else:
 //   localStorage  kanban.config  { owner, repo }        not secret
 //   localStorage  kanban.token   { salt, iv, ct }       the GitHub token, ENCRYPTED
-//   IndexedDB     kanban/cache   { file, sha }          the board file, ENCRYPTED
+//   IndexedDB     kanban/cache   { file, sha, dirty }   the board file, ENCRYPTED
+//                                                        (dirty = has changes not yet on GitHub)
 //
 // SECURITY: never store the passphrase, the key, the plaintext token, or the plaintext board.
 
@@ -77,14 +78,15 @@ async function withStore(mode, makeRequest) {
   }
 }
 
-// Returns { file, sha } or null. `file` is the encrypted { version, salt, iv, ct }.
+// Returns { file, sha, dirty } or null. `file` is the encrypted { version, salt, iv, ct }.
 export async function loadCachedFile() {
   const value = await withStore('readonly', (store) => store.get(BOARD_KEY));
-  return value && value.file ? { file: value.file, sha: value.sha ?? null } : null;
+  if (!value || !value.file) return null;
+  return { file: value.file, sha: value.sha ?? null, dirty: Boolean(value.dirty) };
 }
 
-export async function saveCachedFile({ file, sha }) {
-  await withStore('readwrite', (store) => store.put({ file, sha: sha ?? null }, BOARD_KEY));
+export async function saveCachedFile({ file, sha, dirty }) {
+  await withStore('readwrite', (store) => store.put({ file, sha: sha ?? null, dirty: Boolean(dirty) }, BOARD_KEY));
 }
 
 export async function clearCachedFile() {

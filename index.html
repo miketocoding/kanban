@@ -79,11 +79,17 @@
   <div id="board-screen" class="board-screen" hidden>
     <header class="app-header">
       <h1 class="app-title">Kanban</h1>
+      <span id="sync-status" class="sync-status" data-state="saved" role="status" aria-live="polite">Saved</span>
       <span class="spacer"></span>
       <button type="button" id="create-card" class="btn btn-primary">+ Create</button>
       <button type="button" id="lock-button" class="btn">Lock</button>
       <button type="button" id="open-settings" class="icon-btn icon-settings" aria-label="Settings" title="Settings"></button>
     </header>
+
+    <div id="sync-banner" class="sync-banner" role="alert" hidden>
+      <span id="sync-banner-text" class="sync-banner-text"></span>
+      <button type="button" id="sync-banner-action" class="btn btn-subtle" hidden>Open settings</button>
+    </div>
 
     <div class="toolbar" role="search">
       <input id="search" class="toolbar-search" type="search" placeholder="Search cards" aria-label="Search cards" autocomplete="off">

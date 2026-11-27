@@ -86,6 +86,15 @@ export function showBoard(newBoard) {
   render();
 }
 
+// Swap in a newer board (e.g. fetched from GitHub) without resetting search/filters.
+// Open views refresh; a card that no longer exists closes its view.
+export function replaceBoard(newBoard) {
+  board = newBoard;
+  render();
+  if ($('view-dialog').open) renderCardView();
+  if ($('archive-dialog').open) renderArchiveList();
+}
+
 // Remove every trace of the board from the page. Called on lock and reset.
 // Card text can be sitting in the DOM, open dialogs, form fields and the search box,
 // so all of those are cleared, not just the board columns.
