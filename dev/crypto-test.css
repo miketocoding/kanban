@@ -1,0 +1,78 @@
+body {
+  margin: 0;
+  padding: 16px;
+  background: #ffffff;
+  color: #172b4d;
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.note {
+  color: #626f86;
+  margin: 0 0 16px;
+}
+
+.summary {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  background: #f1f2f4;
+}
+
+.summary[data-status="pass"] { background: #dcfff1; color: #216e4e; }
+.summary[data-status="fail"] { background: #ffeceb; color: #c9372c; }
+
+.results {
+  padding-left: 24px;
+}
+
+.results li {
+  margin: 8px 0;
+}
+
+.status {
+  display: inline-block;
+  min-width: 44px;
+  margin-right: 8px;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.status-pass { background: #dcfff1; color: #216e4e; }
+.status-fail { background: #ffeceb; color: #c9372c; }
+.status-run { background: #f1f2f4; color: #44546f; }
+
+.detail {
+  display: block;
+  color: #626f86;
+  font-size: 13px;
+  margin-left: 52px;
+  overflow-wrap: anywhere;
+}
+
+button {
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 4px;
+  background: #0c66e4;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
