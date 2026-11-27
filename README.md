@@ -32,10 +32,19 @@ Open http://localhost:8000. Web Crypto requires `localhost` or HTTPS.
 
 While testing local changes, keep DevTools open with **Network → Disable cache** ticked, otherwise Chrome may serve a mix of old and new files.
 
+The service worker is **off on localhost** so edits show up on reload. Add `?sw=1` to the URL to test it locally.
+
+## Releasing an update
+
+Whenever any app file changes, bump `VERSION` in `sw.js` (for example `v1` → `v2`) in the same commit. Installed copies only download new files when `sw.js` changes. The new version runs from the next launch.
+
 ## Project structure
 
 ```
 index.html          screens and dialogs; strict Content-Security-Policy
+manifest.webmanifest  PWA name, icons, standalone display
+sw.js               service worker: offline app shell, versioned cache
+icons/              app icons (192, 512, Apple touch, favicon)
 css/styles.css      light, Jira-inspired, mobile-first styles
 js/app.js           entry point: setup / unlock / lock, auto-lock, saving and sync flow
 js/board.js         board data model and mutations (tombstone deletes)
@@ -92,13 +101,13 @@ CLAUDE.md           the full project brief and spec
 - Deletions older than 30 days are purged when saving.
 - Tested with two browsers editing at once.
 
-### ⬜ 6. PWA (next)
-- `manifest.webmanifest` with name, icons (192 and 512), standalone display, and `start_url` / `scope` of `./`.
-- `sw.js` caches the app shell so the app loads offline. It must never cache requests to `api.github.com`.
-- A versioned cache, with old caches deleted on activate, so updates reach the phone right away instead of waiting for GitHub Pages' 10-minute cache.
-- Add to the phone's home screen.
+### ✅ 6. PWA
+- `manifest.webmanifest` with name, icons (192 and 512, also maskable), standalone display, and `start_url` / `scope` of `./`.
+- `sw.js` keeps the app's own files on the device, so the app opens offline and unlocks from the encrypted cache. It never intercepts or caches requests to `api.github.com`.
+- Versioned cache (`kanban-shell-v1`): a new version downloads a complete fresh set of files and deletes the old cache, so old and new files are never mixed.
+- Can be added to the phone's home screen and opens full screen like an app.
 
-### ⬜ 7. Backup
+### ⬜ 7. Backup (next)
 - Export the encrypted board file as a download.
 - Import a backup file, with confirmation before overwriting.
 

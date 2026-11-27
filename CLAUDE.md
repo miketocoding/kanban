@@ -174,6 +174,8 @@ Merge `local` and `remote` boards item by item:
 - `manifest.webmanifest` with name, short name, icons (192 and 512), `display: standalone`, `start_url: "./"`, `scope: "./"`.
 - `sw.js` caches the app shell (HTML, CSS, JS, icons) so the app loads offline. **It must never cache requests to `api.github.com`.**
 - Use a versioned cache name and delete old caches on activate, so updates actually reach the phone.
+- **Bump `VERSION` in `sw.js` whenever any app-shell file changes**, or installed copies keep the old app.
+- The service worker is not registered on localhost (so edits show on reload) unless the URL has `?sw=1`.
 
 ## Milestones
 

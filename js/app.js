@@ -46,6 +46,7 @@ function start() {
   wireSettings();
   wireAutoLock();
   wireConnectivity();
+  registerServiceWorker();
 
   if (Storage.isSetUp()) showUnlock();
   else showSetup();
@@ -534,8 +535,7 @@ let lastActivity = Date.now();
 
 // 4 hours of inactivity. On localhost only, ?autolock=<seconds> shortens it for testing.
 function autoLockMs() {
-  const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
-  const seconds = isLocal ? Number(new URLSearchParams(location.search).get('autolock')) : 0;
+  const seconds = isLocalhost() ? Number(new URLSearchParams(location.search).get('autolock')) : 0;
   return seconds > 0 ? seconds * 1000 : 4 * 60 * 60 * 1000;
 }
 
@@ -642,6 +642,30 @@ async function resetDevice() {
   await cacheChain;
   await Storage.clearDevice();
   showSetup();
+}
+
+// ---- Offline app shell (PWA) ----
+
+function isLocalhost() {
+  return ['localhost', '127.0.0.1'].includes(location.hostname);
+}
+
+// The service worker (sw.js) keeps the app's files on the device so it opens offline.
+// On localhost it is off by default, so code edits show up on reload; ?sw=1 turns it on
+// for testing. It never touches requests to GitHub's API.
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const wantWorker = !isLocalhost() || new URLSearchParams(location.search).has('sw');
+    if (wantWorker) {
+      await navigator.serviceWorker.register('./sw.js');
+    } else {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.unregister()));
+    }
+  } catch {
+    // No offline support this time; the app itself works the same.
+  }
 }
 
 start();
