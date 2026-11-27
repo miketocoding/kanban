@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light">
+  <title>Kanban</title>
+  <!-- Empty icon until the PWA milestone adds real ones (stops the favicon.ico 404). -->
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-title">Kanban</h1>
+    <span class="spacer"></span>
+    <button type="button" id="open-archive" class="btn">Archived</button>
+    <button type="button" id="create-card" class="btn btn-primary">+ Create</button>
+  </header>
+
+  <div class="toolbar" role="search">
+    <input id="search" class="toolbar-search" type="search" placeholder="Search cards" aria-label="Search cards" autocomplete="off">
+    <div class="toolbar-filters">
+      <select id="filter-priority" class="toolbar-select" aria-label="Filter by priority"></select>
+      <select id="filter-project" class="toolbar-select" aria-label="Filter by project"></select>
+      <select id="filter-due" class="toolbar-select" aria-label="Filter by due date"></select>
+      <select id="sort-by" class="toolbar-select" aria-label="Sort cards"></select>
+      <button type="button" id="clear-filters" class="btn btn-subtle" hidden>Clear</button>
+    </div>
+  </div>
+
+  <main id="board" class="board" aria-label="Board"></main>
+
+  <!-- Read-only card view (click a card). Edit opens the form on top of it. -->
+  <dialog id="view-dialog" class="dialog dialog-wide" aria-labelledby="view-title">
+    <div class="dialog-form">
+      <header class="dialog-header">
+        <div class="view-heading">
+          <div id="view-tags" class="view-tags"></div>
+          <h2 id="view-title" class="dialog-title"></h2>
+        </div>
+        <button type="button" id="view-close" class="icon-btn" aria-label="Close">×</button>
+      </header>
+
+      <div class="dialog-body card-layout">
+        <div class="card-main">
+          <section class="view-section">
+            <h3 class="section-title">Description</h3>
+            <p id="view-notes" class="view-notes"></p>
+          </section>
+
+          <section id="view-tasks-section" class="view-section">
+            <div class="field-label-row">
+              <h3 class="section-title">Tasks</h3>
+              <span id="view-tasks-count" class="muted small"></span>
+            </div>
+            <progress id="view-progress" class="checklist-progress" max="1" value="0"></progress>
+            <ul id="view-tasks" class="checklist-items"></ul>
+          </section>
+
+          <section class="view-section">
+            <h3 class="section-title">Comments</h3>
+            <form id="comment-form" class="comment-form">
+              <textarea id="comment-text" rows="2" maxlength="5000" placeholder="Add a comment…" aria-label="New comment"></textarea>
+              <div class="button-row">
+                <button type="submit" id="comment-save" class="btn btn-primary">Save comment</button>
+              </div>
+            </form>
+            <ul id="view-comments" class="comment-list"></ul>
+          </section>
+        </div>
+
+        <aside class="card-side">
+          <label class="field">
+            <span class="field-label">Status</span>
+            <select id="view-status"></select>
+          </label>
+          <dl id="view-details" class="details"></dl>
+        </aside>
+      </div>
+
+      <footer class="dialog-actions">
+        <button type="button" id="view-delete" class="btn btn-danger">Delete</button>
+        <button type="button" id="view-archive" class="btn">Archive</button>
+        <span class="spacer"></span>
+        <button type="button" id="view-edit" class="btn btn-primary">Edit</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- Create / edit form. -->
+  <dialog id="card-dialog" class="dialog dialog-wide" aria-labelledby="card-dialog-title">
+    <form id="card-form" class="dialog-form">
+      <header class="dialog-header">
+        <h2 id="card-dialog-title" class="dialog-title">Create card</h2>
+        <button type="button" id="card-close" class="icon-btn" aria-label="Close">×</button>
+      </header>
+
+      <div class="dialog-body card-layout">
+        <div class="card-main">
+          <label class="field">
+            <span class="field-label">Name <span class="required" aria-hidden="true">*</span></span>
+            <input id="card-title" type="text" required maxlength="200" autocomplete="off">
+          </label>
+
+          <label class="field">
+            <span class="field-label">Description</span>
+            <textarea id="card-notes" rows="5" maxlength="10000"></textarea>
+          </label>
+
+          <section class="field" aria-labelledby="checklist-label">
+            <div class="field-label-row">
+              <span id="checklist-label" class="field-label">Tasks</span>
+              <span id="checklist-count" class="muted small"></span>
+            </div>
+            <progress id="checklist-progress" class="checklist-progress" max="1" value="0" hidden></progress>
+            <ul id="checklist-items" class="checklist-items"></ul>
+            <div class="checklist-add">
+              <input id="checklist-new" type="text" maxlength="500" placeholder="Add a task" autocomplete="off" aria-label="New task">
+              <button type="button" id="checklist-add" class="btn">Add</button>
+            </div>
+          </section>
+        </div>
+
+        <aside class="card-side">
+          <label class="field">
+            <span class="field-label">Status</span>
+            <select id="card-status"></select>
+          </label>
+          <label class="field">
+            <span class="field-label">Priority</span>
+            <select id="card-priority"></select>
+          </label>
+          <label class="field">
+            <span class="field-label">Project</span>
+            <input id="card-project" type="text" maxlength="60" list="project-list" autocomplete="off">
+            <datalist id="project-list"></datalist>
+          </label>
+          <label class="field">
+            <span class="field-label">Start date</span>
+            <input id="card-start" type="date">
+          </label>
+          <label class="field">
+            <span class="field-label">Due date</span>
+            <input id="card-due" type="date">
+          </label>
+          <div class="field">
+            <span class="field-label">Duration</span>
+            <span id="card-duration" class="field-value">—</span>
+          </div>
+          <p id="card-date-error" class="field-error" role="alert" hidden>Due date is before the start date.</p>
+        </aside>
+      </div>
+
+      <footer class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="card-cancel" class="btn">Cancel</button>
+        <button type="submit" id="card-submit" class="btn btn-primary">Create</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Archived cards. -->
+  <dialog id="archive-dialog" class="dialog dialog-medium" aria-labelledby="archive-title">
+    <div class="dialog-form">
+      <header class="dialog-header">
+        <h2 id="archive-title" class="dialog-title">Archived cards</h2>
+        <button type="button" id="archive-close" class="icon-btn" aria-label="Close">×</button>
+      </header>
+      <div class="dialog-body">
+        <input id="archive-search" class="toolbar-search" type="search" placeholder="Search archived cards" aria-label="Search archived cards" autocomplete="off">
+        <ul id="archive-list" class="archive-list"></ul>
+        <p id="archive-empty" class="muted">No archived cards.</p>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="column-dialog" class="dialog" aria-labelledby="column-dialog-title">
+    <form id="column-form" class="dialog-form">
+      <header class="dialog-header">
+        <h2 id="column-dialog-title" class="dialog-title">Edit column</h2>
+        <button type="button" id="column-close" class="icon-btn" aria-label="Close">×</button>
+      </header>
+      <div class="dialog-body">
+        <label class="field">
+          <span class="field-label">Name</span>
+          <input id="column-name" type="text" required maxlength="100" autocomplete="off">
+        </label>
+        <div class="field">
+          <span class="field-label">Position</span>
+          <div class="button-row">
+            <button type="button" id="column-left" class="btn">← Move left</button>
+            <button type="button" id="column-right" class="btn">Move right →</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">Cards</span>
+          <div class="button-row">
+            <button type="button" id="column-archive" class="btn">Archive all cards</button>
+          </div>
+        </div>
+      </div>
+      <footer class="dialog-actions">
+        <button type="button" id="column-delete" class="btn btn-danger">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" id="column-cancel" class="btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>
