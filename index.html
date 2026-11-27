@@ -45,7 +45,7 @@
         <button type="button" id="view-close" class="icon-btn" aria-label="Close">×</button>
       </header>
 
-      <div class="dialog-body card-layout">
+      <div class="dialog-body card-layout view-layout">
         <div class="card-main">
           <section class="view-section">
             <h3 class="section-title">Description</h3>
@@ -61,16 +61,6 @@
             <ul id="view-tasks" class="checklist-items"></ul>
           </section>
 
-          <section class="view-section">
-            <h3 class="section-title">Comments</h3>
-            <form id="comment-form" class="comment-form">
-              <textarea id="comment-text" rows="2" maxlength="5000" placeholder="Add a comment…" aria-label="New comment"></textarea>
-              <div class="button-row">
-                <button type="submit" id="comment-save" class="btn btn-primary">Save comment</button>
-              </div>
-            </form>
-            <ul id="view-comments" class="comment-list"></ul>
-          </section>
         </div>
 
         <aside class="card-side">
@@ -80,6 +70,18 @@
           </label>
           <dl id="view-details" class="details"></dl>
         </aside>
+
+        <!-- Comments come last: below details on phones, under the tasks on desktop. -->
+        <section class="view-section view-comments">
+          <h3 class="section-title">Comments</h3>
+          <form id="comment-form" class="comment-form">
+            <textarea id="comment-text" rows="2" maxlength="5000" placeholder="Add a comment…" aria-label="New comment"></textarea>
+            <div class="button-row">
+              <button type="submit" id="comment-save" class="btn btn-primary">Save comment</button>
+            </div>
+          </form>
+          <ul id="view-comments" class="comment-list"></ul>
+        </section>
       </div>
 
       <footer class="dialog-actions">

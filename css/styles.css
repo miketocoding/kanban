@@ -781,6 +781,13 @@ select {
 
 /* ---- Comments ---- */
 
+/* On phones the view stacks: description + tasks, then status/details, then comments. */
+.view-comments {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+
 .comment-form {
   display: flex;
   flex-direction: column;
@@ -1025,5 +1032,22 @@ select {
     padding: 0 0 0 24px;
     border-top: 0;
     border-left: 1px solid var(--border);
+  }
+
+  /* Card view on desktop: comments sit under the tasks; details span the right side. */
+  .view-layout {
+    grid-template-areas:
+      "main side"
+      "comments side";
+    grid-template-rows: auto 1fr; /* a tall details panel won't push comments down */
+  }
+
+  .view-layout > .card-main { grid-area: main; }
+  .view-layout > .card-side { grid-area: side; }
+
+  .view-layout > .view-comments {
+    grid-area: comments;
+    padding-top: 0;
+    border-top: 0;
   }
 }
