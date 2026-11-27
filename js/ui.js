@@ -53,9 +53,9 @@ const $ = (id) => document.getElementById(id);
 
 // ---- Public API ----
 
-export function initUI(rootEl, initialBoard, changeCallback) {
+// Wire up event listeners once, at startup. The board itself arrives later via showBoard().
+export function initUI(rootEl, changeCallback) {
   root = rootEl;
-  board = initialBoard;
   onChange = changeCallback || (() => {});
 
   document.body.classList.toggle('can-drag', canDrag);
@@ -66,6 +66,7 @@ export function initUI(rootEl, initialBoard, changeCallback) {
   });
 
   $('create-card').addEventListener('click', () => {
+    if (!board) return;
     const first = Board.visibleColumns(board)[0];
     if (first) openCardDialog({ columnId: first.id });
   });
@@ -76,7 +77,43 @@ export function initUI(rootEl, initialBoard, changeCallback) {
   wireCardDialog();
   wireArchiveDialog();
   wireColumnDialog();
+}
+
+// Show a (decrypted) board. Called after unlock.
+export function showBoard(newBoard) {
+  board = newBoard;
+  resetTransientState();
   render();
+}
+
+// Remove every trace of the board from the page. Called on lock and reset.
+// Card text can be sitting in the DOM, open dialogs, form fields and the search box,
+// so all of those are cleared, not just the board columns.
+export function clearBoard() {
+  board = null;
+  document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
+  resetTransientState();
+  root.replaceChildren();
+
+  const fields = ['search', 'card-title', 'card-notes', 'card-project', 'card-start', 'card-due',
+    'checklist-new', 'comment-text', 'archive-search', 'column-name'];
+  fields.forEach((id) => { $(id).value = ''; });
+
+  const containers = ['checklist-items', 'view-tags', 'view-tasks', 'view-comments', 'view-details',
+    'archive-list', 'project-list', 'filter-project', 'card-status', 'view-status'];
+  containers.forEach((id) => $(id).replaceChildren());
+  $('view-title').textContent = '';
+  $('view-notes').textContent = '';
+}
+
+function resetTransientState() {
+  Object.assign(filters, DEFAULT_FILTERS);
+  addingColumn = false;
+  focusAfterRender = null;
+  editingColumnId = null;
+  draggingCardId = null;
+  viewCardId = null;
+  cardDraft = { cardId: null, checklist: [] };
 }
 
 // Call after any board mutation: re-render everything visible and notify the app.
@@ -233,6 +270,7 @@ function syncToolbar() {
 // ---- Board rendering ----
 
 function render() {
+  if (!board) return; // locked
   // Full re-render is simple and fast enough for a personal board.
   // Preserve scroll positions so the view doesn't jump.
   const scrollLeft = root.scrollLeft;

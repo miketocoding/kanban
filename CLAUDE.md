@@ -109,6 +109,9 @@ The app needs three things from M on each device:
 - If it exists, use its salt, derive the key, and decrypt to confirm the passphrase is right.
 - Encrypt the token with the derived key (its own random IV) and store `{ salt, iv, ct }` for the token in localStorage. **The plaintext token is never stored.**
 
+- Setup requires a passphrase of at least 12 characters, typed twice (a typo would make the board unrecoverable).
+- Dev only: on localhost, `?autolock=<seconds>` shortens the auto-lock for testing. It has no effect on any other host.
+
 **Unlock screen** (every later visit). M enters only the passphrase. Derive key, decrypt token, load board.
 
 **Lock.** A "Lock" button, plus auto-lock after 15 minutes of inactivity. Locking wipes the key, token, and board from memory and returns to the unlock screen.
