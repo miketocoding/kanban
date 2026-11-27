@@ -443,10 +443,15 @@ function renderMoveSelect(card, index, count, columns, manual) {
     if (position.children.length) select.append(position);
   }
 
-  const others = columns.filter((c) => c.id !== card.columnId);
-  if (others.length) {
+  // Arrow shows which way the card travels: ← for columns to the left, → for the right.
+  const currentIndex = columns.findIndex((c) => c.id === card.columnId);
+  if (columns.length > 1) {
     const group = el('optgroup', { attrs: { label: 'Column' } });
-    others.forEach((c) => group.append(el('option', { text: `→ ${c.name}`, value: `col:${c.id}` })));
+    columns.forEach((c, i) => {
+      if (i === currentIndex) return;
+      const arrow = i < currentIndex ? '←' : '→';
+      group.append(el('option', { text: `${arrow} ${c.name}`, value: `col:${c.id}` }));
+    });
     select.append(group);
   }
   return select;
