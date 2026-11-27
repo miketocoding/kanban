@@ -114,7 +114,7 @@ The app needs three things from M on each device:
 
 **Unlock screen** (every later visit). M enters only the passphrase. Derive key, decrypt token, load board.
 
-**Lock.** A "Lock" button, plus auto-lock after 15 minutes of inactivity. Locking wipes the key, token, and board from memory and returns to the unlock screen.
+**Lock.** A "Lock" button, plus auto-lock after 4 hours of inactivity. Locking wipes the key, token, and board from memory and returns to the unlock screen.
 
 **Reset device.** A settings option that clears this device's stored config and encrypted token (with confirmation). It does not touch the remote file.
 

@@ -532,11 +532,11 @@ function lock() {
 
 let lastActivity = Date.now();
 
-// 15 minutes. On localhost only, ?autolock=<seconds> shortens it for testing.
+// 4 hours of inactivity. On localhost only, ?autolock=<seconds> shortens it for testing.
 function autoLockMs() {
   const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
   const seconds = isLocal ? Number(new URLSearchParams(location.search).get('autolock')) : 0;
-  return seconds > 0 ? seconds * 1000 : 15 * 60 * 1000;
+  return seconds > 0 ? seconds * 1000 : 4 * 60 * 60 * 1000;
 }
 
 function checkIdle() {

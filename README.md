@@ -72,7 +72,7 @@ CLAUDE.md           the full project brief and spec
 - **Unlock screen** on every later visit: passphrase only.
 - The GitHub token is stored only in encrypted form.
 - The board is cached in IndexedDB as encrypted data only.
-- **Lock** button, plus auto-lock after 15 minutes of inactivity. Locking wipes the board from the page and drops the key, token and board from memory.
+- **Lock** button, plus auto-lock after 4 hours of inactivity. Locking wipes the board from the page and drops the key, token and board from memory.
 - **Settings:** replace the GitHub token, or reset this device (with confirmation; never touches GitHub).
 
 ### ✅ 4. GitHub sync
@@ -104,7 +104,7 @@ CLAUDE.md           the full project brief and spec
 
 ## Open items and notes
 
-- **Adjustable auto-lock time** (for example 5, 15, 30 or 60 minutes): proposed, not decided. It would change the brief.
+- **Auto-lock is 4 hours** on every device (changed from the original 15 minutes). The Lock button locks immediately. The auto-lock mainly guards an unlocked device left unattended, so keep a screen lock on the laptop and phone.
 - **"Move to…" arrow sizes:** the phone's native picker draws ← and → at different sizes. Deferred.
 - **Merge granularity:** apart from comments, a card is merged as one unit. If the same card is changed on two devices, the later change wins for all its other fields, including task ticks.
 - **iPhone Safari** deletes a website's stored data after 7 days without a visit. The board is safe on GitHub, but that device then needs setup again. Home-screen apps (Milestone 6) are exempt.
