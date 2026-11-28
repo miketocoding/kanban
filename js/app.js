@@ -39,6 +39,14 @@ const $ = (id) => document.getElementById(id);
 // ---- Startup ----
 
 function start() {
+  // Refuse to run inside a frame. Another website could otherwise show this app
+  // invisibly inside its own page and trick you into clicking its buttons
+  // ("clickjacking"). GitHub Pages can't send the header that normally blocks this.
+  if (window.self !== window.top) {
+    document.body.textContent = 'Kanban can’t run inside another page. Open it directly.';
+    return;
+  }
+
   initUI($('board'), onBoardChange);
   wireSetup();
   wireUnlock();

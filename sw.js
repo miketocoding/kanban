@@ -13,7 +13,7 @@
 // SECURITY: only same-origin GET requests for app files are handled. Requests to
 // api.github.com (the encrypted board, the token) are never intercepted or cached.
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `kanban-shell-${VERSION}`;
 const CACHE_PREFIX = 'kanban-shell-';
 

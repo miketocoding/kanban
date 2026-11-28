@@ -118,6 +118,8 @@ CLAUDE.md           the full project brief and spec
 - **Merge granularity:** apart from comments, a card is merged as one unit. If the same card is changed on two devices, the later change wins for all its other fields, including task ticks.
 - **iPhone Safari** deletes a website's stored data after 7 days without a visit. The board is safe on GitHub, but that device then needs setup again. Home-screen apps (Milestone 6) are exempt.
 - **GitHub token** expires Nov 26, 2027. Replace it in Settings on each device before then.
+- **Shared web address (open security item):** browsers treat every GitHub Pages site under `miketocoding.github.io` as one website, so code on any of them (including third-party scripts they load) can read this app's stored data (encrypted) and interfere with the app. Fix: move the `kanban` repo to its own address, such as a free GitHub organization (`<org>.github.io/kanban/`) or a custom domain.
+- **Framing:** the app refuses to run inside another page (clickjacking protection), because GitHub Pages can't send the header that normally blocks it.
 - **The app is open to anyone,** but only with their own private repo and token. Nobody can reach your data without both your token and your passphrase.
 
 ## Security rules (summary)
